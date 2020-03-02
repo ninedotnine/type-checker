@@ -76,7 +76,7 @@ def judgement_type(thing):
         if thing.tag == "&":
             return judgement_type(thing.left) and judgement_type(thing.right)
 
-        return thing.tag == "foo" or thing.tag == "bar" or thing.tag == "baz"
+        return thing.tag.isalpha()
     except AttributeError:
         print("something is wonky with your types")
         return False
