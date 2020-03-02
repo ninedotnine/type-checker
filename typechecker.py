@@ -20,7 +20,7 @@ Bar = BaseType("bar")
 Baz = BaseType("baz")
 
 class Product(BaseType):
-    tag = "&"
+    tag = "*"
 
     def __init__(self, left, right):
         if not judgement_type(left):
@@ -33,7 +33,7 @@ class Product(BaseType):
 
     def __eq__(self, other):
         try:
-            return (other.tag == "&"
+            return (other.tag == "*"
                     and self.left == other.left
                     and self.right == other.right)
         except AttributeError:
@@ -97,7 +97,7 @@ def judgement_type(thing):
         if thing.tag == "->":
             return judgement_type(thing.domain) and judgement_type(thing.rang)
 
-        if thing.tag == "&" or thing.tag == "+":
+        if thing.tag == "*" or thing.tag == "+":
             return judgement_type(thing.left) and judgement_type(thing.right)
 
         return thing.tag.isalpha()
@@ -162,7 +162,7 @@ class V():
 
 
 class Pair():
-    tag = "(,)"
+    tag = "&"
 
     def __init__(self, first, second):
         self.first = first
@@ -173,7 +173,7 @@ class Pair():
 
 class SplitPair():
     # pattern matching on Pairs
-    tag = "%"
+    tag = ".&."
 
     def __init__(self, p, x_name, x_type, y_name, y_type, body):
         if not judgement_type(x_type):
@@ -204,7 +204,7 @@ class Either():
 
 class SplitEither():
     # pattern matching on Either
-    tag = "||"
+    tag = ".|."
 
     def __init__(self, e, x_name, x_type, y_name, y_type, body):
         if not judgement_type(x_type):
@@ -254,19 +254,19 @@ def judgement_check(context, m, a):
     if m.tag == "^_^":
         return context.entries.get(m.name) == a
 
-    if m.tag == "(,)":
-        if a.tag != "&":
+    if m.tag == "&":
+        if a.tag != "*":
             print("pair should have type &")
             return False
         return (judgement_check(context, m.first, a.left)
                 and judgement_check(context, m.second, a.right))
 
-    if m.tag == "%":
+    if m.tag == ".&.":
         new_context = Context({m.x_name: m.x_type, m.y_name: m.y_type}, context)
         return (judgement_check(context, m.pair, Product(m.x_type, m.y_type))
                 and judgement_check(new_context, m.body, a))
 
-    if m.tag == "||":
+    if m.tag == ".|.":
         new_context = Context({m.x_name: m.x_type, m.y_name: m.y_type}, context)
         return (judgement_check(context, m.either, Sum(m.x_type, m.y_type))
                 and judgement_check(new_context, m.body, a))
