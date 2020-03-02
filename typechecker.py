@@ -256,7 +256,7 @@ def judgement_check(context, m, a):
 
     if m.tag == "&":
         if a.tag != "*":
-            print("pair should have type &")
+            print("pair should have type *")
             return False
         return (judgement_check(context, m.first, a.left)
                 and judgement_check(context, m.second, a.right))
@@ -265,6 +265,13 @@ def judgement_check(context, m, a):
         new_context = Context({m.x_name: m.x_type, m.y_name: m.y_type}, context)
         return (judgement_check(context, m.pair, Product(m.x_type, m.y_type))
                 and judgement_check(new_context, m.body, a))
+
+    if m.tag == "|":
+        if a.tag != "+":
+            print("sum should have type +")
+            return False
+        return (judgement_check(context, m.first, a.left)
+                and judgement_check(context, m.second, a.right))
 
     if m.tag == ".|.":
         new_context = Context({m.x_name: m.x_type, m.y_name: m.y_type}, context)
@@ -357,12 +364,16 @@ def demo_contexts():
     print(f"v6 is {v6}")
     assert( judgement_check(c4, v6, Bar) )
 
+    v7 = Either(v, v2)
+    print(f"v7 is {v7}")
+    assert( judgement_check(c2, v7, Sum(Foo, Bar)) )
+
     c5 = Context({"eitherfooorbar": Sum(Foo, Bar)}, e)
     print(f"c5 is {c5}")
     assert( judgement_ctx(c5) )
-    v7 = SplitEither(V("eitherfooorbar"), "var", Foo, "val", Bar, V("var"))
-    print(f"v7 is {v7}")
-    assert( judgement_check(c5, v7, Foo) )
+    v8 = SplitEither(V("eitherfooorbar"), "var", Foo, "val", Bar, V("var"))
+    print(f"v8 is {v8}")
+    assert( judgement_check(c5, v8, Foo) )
 
 
 
