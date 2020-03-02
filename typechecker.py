@@ -43,30 +43,6 @@ class Product(BaseType):
         return f"({self.left} & {self.right})"
 
 
-class Arrow(BaseType):
-    tag = "->"
-
-    def __init__(self, domain, rang):
-        if not judgement_type(domain):
-            raise TypeError("'domain' is not a valid type")
-        if not judgement_type(rang):
-            raise TypeError("'rang' is not a valid type")
-
-        self.domain = domain
-        self.rang = rang
-
-    def __eq__(self, other):
-        try:
-            return (other.tag == "->"
-                    and self.domain == other.domain
-                    and self.rang == other.rang)
-        except AttributeError:
-            return False
-
-    def __repr__(self):
-        return f"({self.domain} -> {self.rang})"
-
-
 class Sum(BaseType):
     tag = "+"
 
@@ -91,14 +67,38 @@ class Sum(BaseType):
         return f"({self.left} + {self.right})"
 
 
+class Arrow(BaseType):
+    tag = "->"
+
+    def __init__(self, domain, rang):
+        if not judgement_type(domain):
+            raise TypeError("'domain' is not a valid type")
+        if not judgement_type(rang):
+            raise TypeError("'rang' is not a valid type")
+
+        self.domain = domain
+        self.rang = rang
+
+    def __eq__(self, other):
+        try:
+            return (other.tag == "->"
+                    and self.domain == other.domain
+                    and self.rang == other.rang)
+        except AttributeError:
+            return False
+
+    def __repr__(self):
+        return f"({self.domain} -> {self.rang})"
+
+
 def judgement_type(thing):
     """returns true if its argument is a valid type"""
     try:
-        if thing.tag == "->":
-            return judgement_type(thing.domain) and judgement_type(thing.rang)
-
         if thing.tag == "*" or thing.tag == "+":
             return judgement_type(thing.left) and judgement_type(thing.right)
+
+        if thing.tag == "->":
+            return judgement_type(thing.domain) and judgement_type(thing.rang)
 
         return thing.tag.isalpha()
     except AttributeError:
