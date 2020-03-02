@@ -19,7 +19,7 @@ Foo = BaseType("foo")
 Bar = BaseType("bar")
 Baz = BaseType("baz")
 
-class Pair(BaseType):
+class Product(BaseType):
     tag = "&"
 
     def __init__(self, left, right):
@@ -161,7 +161,7 @@ class V():
         return f"variable {self.name}"
 
 
-class MakePair():
+class Pair():
     tag = "(,)"
 
     def __init__(self, first, second):
@@ -263,7 +263,7 @@ def judgement_check(context, m, a):
 
     if m.tag == "%":
         new_context = Context({m.x_name: m.x_type, m.y_name: m.y_type}, context)
-        return (judgement_check(context, m.pair, Pair(m.x_type, m.y_type))
+        return (judgement_check(context, m.pair, Product(m.x_type, m.y_type))
                 and judgement_check(new_context, m.body, a))
 
     if m.tag == "||":
@@ -295,10 +295,10 @@ def demo_types():
     assert( judgement_type(y) )
     assert( x != y )
 
-    p = Pair(x,y)
+    p = Product(x,y)
     print(f"p is {p}")
     assert( judgement_type(p) )
-    assert( p == Pair(Foo, Bar) )
+    assert( p == Product(Foo, Bar) )
 
     s = Sum(x,y)
     print(f"s is {s}")
@@ -308,7 +308,7 @@ def demo_types():
     f = Arrow(x,p)
     print(f"f is {f}")
     assert( judgement_type(f) )
-    assert( f == Arrow(Foo, Pair(Foo, Bar)) )
+    assert( f == Arrow(Foo, Product(Foo, Bar)) )
 
 
 def demo_contexts():
@@ -334,11 +334,11 @@ def demo_contexts():
     assert( judgement_ctx(c2) )
     assert( judgement_check(c2, v2, Bar) )
 
-    v3 = MakePair(v, v2)
+    v3 = Pair(v, v2)
     print(f"v3 is {v3}")
-    assert( judgement_check(c2, v3, Pair(Foo, Bar)) )
+    assert( judgement_check(c2, v3, Product(Foo, Bar)) )
 
-    c3 = Context({"pairofvars": Pair(Foo, Bar)}, e)
+    c3 = Context({"pairofvars": Product(Foo, Bar)}, e)
     print(f"c3 is {c3}")
     assert( judgement_ctx(c3) )
 
@@ -369,16 +369,16 @@ def demo_contexts():
 def examples():
     e = Context({})
     fst_defn = MakeLambda("p", SplitPair(V("p"), "x", Foo, "y", Bar, V("x")))
-    fst_type = Arrow(Pair(Foo, Bar), Foo)
+    fst_type = Arrow(Product(Foo, Bar), Foo)
     assert( judgement_check(e, fst_defn, fst_type) )
 
     snd_defn = MakeLambda("p",SplitPair(V("p"), "x", Foo, "y", Bar, V("y")))
-    snd_type = Arrow(Pair(Foo, Bar), Bar)
+    snd_type = Arrow(Product(Foo, Bar), Bar)
     assert( judgement_check(e, snd_defn, snd_type) )
 
     # \x -> (x,x)
-    tuplify_defn = MakeLambda("x", MakePair(V("x"), V("x")))
-    tuplify_type = Arrow(Foo, Pair(Foo, Foo))
+    tuplify_defn = MakeLambda("x", Pair(V("x"), V("x")))
+    tuplify_type = Arrow(Foo, Product(Foo, Foo))
     assert( judgement_check(e, tuplify_defn, tuplify_type) )
 
     # const
@@ -397,13 +397,13 @@ def examples():
     assert( judgement_check(e, after_defn, after_type) )
 
     curry_defn = MakeLambda("f", MakeLambda("x", MakeLambda("y",
-                    Apply(V("f"), MakePair(V("x"), V("y")), Pair(Foo, Bar)))))
-    curry_type = Arrow(Arrow(Pair(Foo, Bar), Baz), Arrow(Foo, Arrow(Bar, Baz)))
+                    Apply(V("f"), Pair(V("x"), V("y")), Product(Foo, Bar)))))
+    curry_type = Arrow(Arrow(Product(Foo, Bar), Baz), Arrow(Foo, Arrow(Bar, Baz)))
     assert( judgement_check(e, curry_defn, curry_type) )
 
     uncurry_defn = MakeLambda("f", MakeLambda("p", SplitPair(V("p"), "x", Foo, "y", Bar,
                     Apply(Apply(V("f"), V("x"), Foo), V("y"), Bar))))
-    uncurry_type = Arrow(Arrow(Foo, Arrow(Bar, Baz)), Arrow(Pair(Foo, Bar), Baz))
+    uncurry_type = Arrow(Arrow(Foo, Arrow(Bar, Baz)), Arrow(Product(Foo, Bar), Baz))
     assert( judgement_check(e, uncurry_defn, uncurry_type) )
 
 demo_types()
