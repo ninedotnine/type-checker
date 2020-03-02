@@ -2,13 +2,18 @@
 
 class BaseType():
     def __init__(self, name):
+        if not name.isalpha():
+            raise ValueError("type names should be alphabetical.")
         self.tag = name
 
-    def __str__(self):
+    def __repr__(self):
         return f"{self.tag}"
 
     def __eq__(self, other):
-        return other.tag == self.tag
+        try:
+            return other.tag == self.tag
+        except AttributeError:
+            return False
 
 Foo = BaseType("foo")
 Bar = BaseType("bar")
@@ -34,7 +39,7 @@ class Pair(BaseType):
         except AttributeError:
             return False
 
-    def __str__(self):
+    def __repr__(self):
         return f"({self.left} & {self.right})"
 
 
@@ -58,7 +63,7 @@ class Arrow(BaseType):
         except AttributeError:
             return False
 
-    def __str__(self):
+    def __repr__(self):
         return f"({self.domain} -> {self.rang})"
 
 
@@ -77,77 +82,59 @@ def judgement_type(thing):
         return False
 
 
-class EmptyContext():
-    tag = "empty"
+class Context():
+    # uses a dict to map names to types
+    tag = "{}"
 
-    def __str__(self):
-        return "empty context"
+    def __init__(self, entries, subset=None):
+        self.entries = dict()
 
-    def __contains__(self, anything):
-        return False
+        if subset:
+            if not judgement_ctx(subset):
+                raise TypeError("'subset' is not a valid context")
+            for (name, name_type) in subset:
+                self.entries[name] = name_type
 
-class ContextWith():
-    # dan get rid of this linked list; use a python list instead []
-    tag = ":,"
-
-    def __init__(self, rest, name, name_type):
-        if not judgement_type(name_type):
-            raise TypeError("'name_type' is not a valid type")
-        if not judgement_ctx(rest):
-            raise TypeError("'rest' is not a valid context")
-
-        self.rest = rest
-        self.name = name
-        self.name_type = name_type
-
-    def __str__(self):
-        return f"{self.name}:{self.name_type}, {self.rest}"
+        for (name, name_type) in entries.items():
+            if not judgement_type(name_type):
+                raise TypeError(f"name_type '{name_type}' is not a valid type")
+            if name in self.entries:
+                raise ValueError(f"name {name} is already in use")
+            self.entries[name] = name_type
 
     def __contains__(self, name):
-        if self.tag ==  "empty":
-            return False
-        else:
-            if name == self.name:
-                return True
-            else:
-                return name in self.rest
+        return name in self.entries.keys()
+
+    def __iter__(self):
+        for name, name_type in self.entries.items():
+            yield name, name_type
+
+    def __repr__(self):
+        return f"context of {self.entries}"
 
 
 def judgement_ctx(context):
     """returns true if its argument is a valid context"""
     try:
-        if context.tag == ":,":
-            return (judgement_ctx(context.rest)
-                    and judgement_type(context.name_type)
-                    and context.name not in context.rest)
-        else:
-            return context.tag == "empty"
+        for t in context.entries.values():
+            if not judgement_type(t):
+                return False
+        return True
     except AttributeError:
-        print("something is wonky with your types")
+        print("something is wonky with your context-dict")
         return False
 
 
 class V():
-    tag = "variable"
+    tag = "^_^"
 
     def __init__(self, name):
+        if not name.isalpha():
+            raise ValueError("variable names should be alphabetical.")
         self.name = name
 
-    def __str__(self):
+    def __repr__(self):
         return f"variable {self.name}"
-
-class MakeVar():
-    tag = "variable"
-
-    def __init__(self, name, name_type):
-        if not judgement_type(name_type):
-            raise TypeError(f"{name_type} is not any known type")
-
-        self.name = name
-        self.name_type = name_type
-
-    def __str__(self):
-        return f"variable {self.name} of {self.name_type}"
 
 
 class MakePair():
@@ -157,12 +144,12 @@ class MakePair():
         self.first = first
         self.second = second
 
-    def __str__(self):
+    def __repr__(self):
         return f"pair containing {self.first} and {self.second}"
 
 class SplitPair():
     # pattern matching on Pairs
-    tag = "split"
+    tag = "%"
 
     def __init__(self, p, x_name, x_type, y_name, y_type, body):
         if not judgement_type(x_type):
@@ -178,24 +165,23 @@ class SplitPair():
         self.body = body
 
 
-    def __str__(self):
+    def __repr__(self):
         return f"{self.body} where {self.x_name}:{self.x_type} and {self.y_name}:{self.y_type}"
 
 
 class MakeLambda():
     # functions
-    tag = "lambda"
+    tag = "\\"
 
     def __init__(self, x, m):
         self.name = x
         self.body = m
 
-    def __str__(self):
+    def __repr__(self):
         return f"\{self.body} -> {self.name}"
 
-
 class Apply():
-    tag = "apply"
+    tag = "$"
 
     def __init__(self, f, n, a):
         if not judgement_type(a):
@@ -205,22 +191,14 @@ class Apply():
         self.arg = n
         self.arg_type = a
 
-    def __str__(self):
+    def __repr__(self):
         return f"{self.func}({self.arg}:{self.arg_type})"
-
-def var_has_type(n, a, context):
-    if context.tag == "empty":
-        return False
-    if context.tag == ":,":
-        if n == context.name:
-            return a == context.name_type
-    return var_has_type(n, a, context.rest)
 
 
 def judgement_check(context, m, a):
     """returns true if 'm' has type 'a' in 'context'"""
-    if m.tag == "variable":
-        return var_has_type(m.name, a, context)
+    if m.tag == "^_^":
+        return context.entries.get(m.name) == a
 
     if m.tag == "(,)":
         if a.tag != "&":
@@ -229,19 +207,18 @@ def judgement_check(context, m, a):
         return (judgement_check(context, m.first, a.left)
                 and judgement_check(context, m.second, a.right))
 
-    if m.tag == "split":
-        new_context = ContextWith(context, m.x_name, m.x_type)
-        new_context = ContextWith(new_context, m.y_name, m.y_type)
+    if m.tag == "%":
+        new_context = Context({m.x_name: m.x_type, m.y_name: m.y_type}, context)
         return (judgement_check(context, m.pair, Pair(m.x_type, m.y_type))
                 and judgement_check(new_context, m.body, a))
 
-    if m.tag == "lambda":
+    if m.tag == "\\":
         if a.tag != "->":
             print("function should have type ->")
             return False
-        return judgement_check(ContextWith(context, m.name, a.domain), m.body, a.rang)
+        return judgement_check(Context({m.name: a.domain}, context), m.body, a.rang)
 
-    if m.tag == "apply":
+    if m.tag == "$":
         return (judgement_check(context, m.func, Arrow(m.arg_type, a))
                 and judgement_check(context, m.arg, m.arg_type))
 
@@ -271,19 +248,16 @@ def demo_types():
 
 
 def demo_contexts():
-    e = EmptyContext()
+    e = Context({})
     print(f"e is {e}")
     assert( judgement_ctx(e) )
     assert( "name" not in e )
 
-    c = ContextWith(e, "var", Foo)
+    c = Context({"var": Foo}, e)
     print(f"c is {c}")
     assert( judgement_ctx(c) )
     assert( "var" in c )
     assert( "name" not in c )
-
-
-    assert (var_has_type("var", Foo, c))
 
     v = V("var")
     print(f"v is {v}")
@@ -291,15 +265,15 @@ def demo_contexts():
 
     v2 = V("val")
     print(f"v2 is {v2}")
-    c2 = ContextWith(c, "val", Bar)
+    c2 = Context({"val": Bar}, c)
     print(f"c2 is {c2}")
     assert( judgement_check(c2, v2, Bar) )
 
     v3 = MakePair(v, v2)
     print(f"v3 is {v3}")
-    assert( judgement_check(c2, v3, Pair(Foo,Bar)) )
+    assert( judgement_check(c2, v3, Pair(Foo, Bar)) )
 
-    c3 = ContextWith(e, "pairofvars", Pair(Foo, Bar))
+    c3 = Context({"pairofvars": Pair(Foo, Bar)}, e)
     print(f"c3 is {c3}")
 
     v4 = SplitPair(V("pairofvars"), "var", Foo, "val", Bar, V("var"))
@@ -310,7 +284,7 @@ def demo_contexts():
     print(f"v5 is {v5}")
     assert( judgement_check(e, v5, Arrow(Foo, Foo)) )
 
-    c4 = ContextWith(c2, "f", Arrow(Foo, Bar))
+    c4 = Context({"f": Arrow(Foo, Bar)}, c2)
     print(f"c4 is {c4}")
     v6 = Apply(V("f"), V("var"), Foo)
     print(f"v6 is {v6}")
@@ -318,7 +292,7 @@ def demo_contexts():
 
 
 def examples():
-    e = EmptyContext()
+    e = Context({})
     fst_defn = MakeLambda("p", SplitPair(V("p"), "x", Foo, "y", Bar, V("x")))
     fst_type = Arrow(Pair(Foo, Bar), Foo)
     assert( judgement_check(e, fst_defn, fst_type) )
