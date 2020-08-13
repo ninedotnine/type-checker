@@ -43,3 +43,6 @@ class Context():
 
     def __repr__(self):
         return f"context of {self.entries}"
+
+    def get(self, elem):
+        return self.entries.get(elem)

@@ -9,7 +9,7 @@ def judgement_check(context, m, a):
         raise ValueError
 
     if m.tag == "^_^":
-        return context.entries.get(m.name) == a
+        return context.get(m.name) == a
 
     if m.tag == "&":
         if a.tag != "*":
