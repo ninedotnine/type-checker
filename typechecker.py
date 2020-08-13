@@ -5,6 +5,9 @@ from contexts import *
 
 def judgement_check(context, m, a):
     """returns true if 'm' has type 'a' in 'context'"""
+    if not judgement_type(a) or not judgement_ctx(context):
+        raise ValueError
+
     if m.tag == "^_^":
         return context.entries.get(m.name) == a
 
