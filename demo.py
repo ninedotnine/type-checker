@@ -102,7 +102,7 @@ def examples():
     fst_type = Arrow(Product(Foo, Bar), Foo)
     assert( judgement_check(e, fst_defn, fst_type) )
 
-    snd_defn = MakeLambda("p",SplitPair(V("p"), "x", Foo, "y", Bar, V("y")))
+    snd_defn = MakeLambda("p", SplitPair(V("p"), "x", Foo, "y", Bar, V("y")))
     snd_type = Arrow(Product(Foo, Bar), Bar)
     assert( judgement_check(e, snd_defn, snd_type) )
 
